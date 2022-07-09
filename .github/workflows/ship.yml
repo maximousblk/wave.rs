@@ -1,0 +1,85 @@
+name: Ship
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Semver tag
+        required: true
+
+jobs:
+  build:
+    name: build / ${{ matrix.target }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          target: ${{ matrix.target }}
+          override: true
+          default: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ !contains(matrix.target, 'x86_64') }}
+          command: build
+          args: --target ${{ matrix.target }}
+
+      - name: Zip unix build
+        if: runner.os != 'Windows'
+        working-directory: target/${{ matrix.target }}/release
+        run: zip -r wave-${{ matrix.target }}.zip wave
+
+      - name: Zip windows build
+        if: runner.os == 'Windows'
+        working-directory: target/${{ matrix.target }}/release
+        run: Compress-Archive -Path wave.exe -DestinationPath wave-${{ matrix.target }}.zip
+
+      - name: Upload Builds
+        uses: actions/upload-artifact@v3
+        with:
+          name: release
+          path: target/${{ matrix.target }}/release/wave-${{ matrix.target }}.zip
+          retention-days: 1
+
+      - name: Release v${{ github.event.inputs.tag }}
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: '${{ github.event.inputs.tag }}'
+          name: 'v${{ github.event.inputs.tag }}'
+          bodyFile: 'CHANGELOG.md'
+          artifacts: 'dist/*.zip,dist/checksums.txt'
+          draft: true
+
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Setup Deno
+        uses: maximousblk/setup-deno@v2
+
+      - name: Download Builds
+        uses: actions/download-artifact@v3
+
+      - name: Generate Release Notes
+        run: deno run -A https://deno.land/x/ghlog/ghlog.ts ${{ github.repository }} -v '${{ github.event.inputs.tag }}'
+
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.event.inputs.tag }}
+          name: v${{ github.event.inputs.tag }}
+          bodyFile: 'CHANGELOG.md'
+          artifacts: 'release/*'
+          draft: true
