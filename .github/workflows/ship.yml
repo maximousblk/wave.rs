@@ -50,7 +50,7 @@ jobs:
         with:
           use-cross: ${{ !contains(matrix.target, 'x86_64') }}
           command: build
-          args: --target ${{ matrix.target }}
+          args: --release --target ${{ matrix.target }}
 
       - name: Zip unix build
         if: runner.os != 'Windows'
