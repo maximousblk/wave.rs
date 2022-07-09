@@ -69,16 +69,6 @@ jobs:
           path: target/${{ matrix.target }}/release/wave-${{ matrix.target }}.zip
           retention-days: 1
 
-      - name: Release v${{ github.event.inputs.tag }}
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ github.token }}
-          tag: '${{ github.event.inputs.tag }}'
-          name: 'v${{ github.event.inputs.tag }}'
-          bodyFile: 'CHANGELOG.md'
-          artifacts: 'dist/*.zip,dist/checksums.txt'
-          draft: true
-
   release:
     needs: build
     runs-on: ubuntu-22.04
