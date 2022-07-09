@@ -54,7 +54,7 @@ fn main() {
     for (t, wallet) in rx {
         count += 1;
         if pattern.is_match(&wallet.address()) {
-            println!("\n✅ [T{:02}] wallet: {}\n", t, wallet.address());
+            println!("\n✅ [T{:02}] wallet: {}", t, wallet.address());
 
             // write wallet jwk to file
             let outfile = outdir.join(format!("arweave-keyfile-{}.json", wallet.address()));
@@ -64,7 +64,7 @@ fn main() {
 
             fs::write(&outfile, jwk_json).expect("Failed to write wallet to file");
 
-            println!("📄 wallet written to file {}", outfile.display());
+            println!("📄 wallet written to file {}\n", outfile.display());
 
             break;
         } else {
