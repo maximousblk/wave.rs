@@ -5,6 +5,7 @@ use rsa::{BigUint, RsaPrivateKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
+use std::ops::Rem;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
@@ -87,21 +88,24 @@ struct JWK {
     p: String,
     q: String,
     n: String,
-    // dp: String,
-    // dq: String,
-    // qi: String,
+
+    dp: String,
+    dq: String,
+    qi: String,
 }
 
 #[allow(dead_code)]
 struct Components {
     e: Vec<u8>,
     d: BigUint,
-    n: BigUint,
+
     p: BigUint,
     q: BigUint,
-    // dp,
-    // dq,
-    // qi,
+    n: BigUint,
+
+    dp: BigUint,
+    dq: BigUint,
+    qi: BigUint,
 }
 
 #[allow(dead_code)]
@@ -132,36 +136,39 @@ impl Wallet {
     }
 
     pub fn components(&self) -> Components {
-        let d = RsaPrivateKey::d(&self.pvtkey).clone();
-        let p = RsaPrivateKey::primes(&self.pvtkey)[0].clone();
-        let q = RsaPrivateKey::primes(&self.pvtkey)[1].clone();
-
-        Components {
-            e: vec![0x01, 0x00, 0x01],
-            d,
-            n: &p * &q,
-            p,
-            q,
-        }
-    }
-
-    pub fn jwk(&self) -> JWK {
         let d = RsaPrivateKey::d(&self.pvtkey);
         let p = &RsaPrivateKey::primes(&self.pvtkey)[0];
         let q = &RsaPrivateKey::primes(&self.pvtkey)[1];
 
+        Components {
+            e: vec![0x01, 0x00, 0x01],
+            d: d.clone(),
+
+            p: p.clone(),
+            q: q.clone(),
+            n: p * q,
+
+            dp: d.rem(p - BigUint::from(1u8)),
+            dq: d.rem(q - BigUint::from(1u8)),
+            qi: p.modpow(&(q - BigUint::from(2u8)), &q),
+        }
+    }
+
+    pub fn jwk(&self) -> JWK {
         JWK {
             kty: "RSA".to_string(),
             ext: true,
-            e: "AQAB".to_string(),
-            d: encode(&d.to_bytes_le()),
 
-            p: encode(&p.to_bytes_le()),
-            q: encode(&q.to_bytes_le()),
-            n: encode(&(p * q).to_bytes_le()),
-            // dp: "idk".to_string(),
-            // dq: "idk".to_string(),
-            // qi: "idk".to_string(),
+            e: "AQAB".to_string(),
+            d: encode(&self.components().d.to_bytes_be()),
+
+            p: encode(&self.components().p.to_bytes_be()),
+            q: encode(&self.components().q.to_bytes_be()),
+            n: encode(&self.components().n.to_bytes_be()),
+
+            dp: encode(&self.components().dp.to_bytes_be()),
+            dq: encode(&self.components().dq.to_bytes_be()),
+            qi: encode(&self.components().qi.to_bytes_be()),
         }
     }
 }
