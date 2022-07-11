@@ -11,6 +11,8 @@ jobs:
   build:
     name: build / ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_VERSION: ${{ github.event.inputs.tag }}
 
     strategy:
       fail-fast: true
@@ -91,5 +93,5 @@ jobs:
           tag: ${{ github.event.inputs.tag }}
           name: v${{ github.event.inputs.tag }}
           bodyFile: 'CHANGELOG.md'
-          artifacts: 'release/*'
+          artifacts: 'release/*,CHANGELOG.md,README.md'
           draft: true

@@ -1,14 +1,16 @@
 use clap::Parser;
+use colored::*;
 use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
+use update_informer::{registry, Check};
 use wave::Wallet;
 
 #[derive(Parser)]
-#[clap(author, version, about, arg_required_else_help(true))]
+#[clap(author, version = {option_env!("RELEASE_VERSION").unwrap_or("dev")}, about, arg_required_else_help(true))]
 struct Args {
     /// The number of threads to use
     #[clap(short, long, value_parser, default_value_t = 8)]
@@ -24,6 +26,27 @@ struct Args {
 }
 
 fn main() {
+    let current_version = option_env!("RELEASE_VERSION").unwrap_or("dev");
+
+    let informer = update_informer::new(registry::GitHub, "maximousblk/wave.rs", current_version);
+
+    if let Some(version) = informer.check_version().ok().flatten() {
+        let msg = format!(
+            "A new release of {} is available: v{} -> {}",
+            "wave".italic().cyan(),
+            current_version,
+            version.to_string().green()
+        );
+
+        let release_url = format!(
+            "https://github.com/maximousblk/wave.rs/releases/tag/{}",
+            version
+        )
+        .yellow();
+
+        println!("\n{msg}\n{url}", msg = msg, url = release_url);
+    }
+
     let args = Args::parse();
 
     let pattern = Regex::new(&args.pattern).expect("Invalid pattern");
