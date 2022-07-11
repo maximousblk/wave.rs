@@ -29,12 +29,14 @@ fn main() {
     let pattern = Regex::new(&args.pattern).expect("Invalid pattern");
 
     let outdir = PathBuf::from(&args.output);
-    if !outdir.exists() {
+
+    if !outdir.exists() || !outdir.is_dir() {
         fs::create_dir_all(&outdir).expect("Failed to create output directory");
     }
+    let outdir = outdir.canonicalize().expect("Failed to get canonical path");
 
     println!("\n🔍 Pattern: /{}/", &args.pattern);
-    println!("📁 Output directory: {}", &outdir.to_str().unwrap());
+    println!("📁 Output directory: {}", &outdir.display());
     println!("🧵 Threads: {}\n", &args.threads);
 
     let (tx, rx) = mpsc::channel();
