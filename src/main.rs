@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::*;
+use path_slash::PathBufExt as _;
 use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
@@ -48,9 +49,9 @@ fn main() {
     fs::create_dir_all(&outdir).expect("Failed to create output directory");
   }
 
-  println!("\n🔍 Pattern: /{}/", &args.pattern);
-  println!("📁 Output directory: {}", &outdir.display());
-  println!("🧵 Threads: {}\n", &args.threads);
+  println!("\n🔍 Pattern: {}", format!("/{}/", &args.pattern).yellow());
+  println!("📁 Output directory: {}", &outdir.to_slash_lossy().to_string().yellow());
+  println!("🧵 Threads: {}\n", &args.threads.to_string().yellow());
 
   let (tx, rx) = mpsc::channel();
 
@@ -68,7 +69,7 @@ fn main() {
     count += 1;
     let address = &wallet.address();
     if pattern.is_match(address) {
-      println!("\n✅ [T{:02}] wallet: {}", t, address);
+      println!("\n✅ {} wallet: {}", format!("[T{:02}]", t).dimmed(), address.green().bold());
 
       // write wallet jwk to file
       let outfile = outdir.join(format!("arweave-keyfile-{}.json", address));
@@ -77,14 +78,14 @@ fn main() {
 
       fs::write(&outfile, jwk_json).expect("Failed to write wallet to file");
 
-      println!("📄 wallet written to file {}\n", outfile.display());
+      println!("📄 wallet written to file {}\n", outfile.to_slash_lossy().to_string().yellow());
 
       let el = now.elapsed().as_secs_f32();
-      println!("🏁 Done in {:.3}s ({:.1}/s)", el, (count as f32 / el));
+      println!("🏁 Done in {:.3}s {}", el.to_string().bold(), format!("({:.1}/s)", (count as f32 / el)).dimmed());
 
       break;
     } else {
-      println!("🔍 [T{:02}] wallet: {}", t, address);
+      println!("🔍 {} wallet: {}", format!("[T{:02}]", t).dimmed(), address);
     }
   }
 }
