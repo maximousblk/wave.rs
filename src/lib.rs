@@ -13,7 +13,7 @@ impl Wallet {
   pub fn new() -> Self {
     let mut rng = rand::thread_rng();
 
-    let pvtkey = RsaPrivateKey::new_with_exp(&mut rng, 4096, &BigUint::from_bytes_be(&[0x01, 0x00, 0x01])).unwrap();
+    let pvtkey = RsaPrivateKey::new_with_exp(&mut rng, 4096, &BigUint::from_bytes_be(&[0x01, 0x00, 0x01])).expect("Failed to generate private key");
     let pubkey = RsaPublicKey::from(&pvtkey);
 
     Wallet { pvtkey, pubkey }
@@ -46,7 +46,7 @@ impl Wallet {
 
   pub fn jwk(&self) -> JWK {
     JWK {
-      kty: "RSA".to_string(),
+      kty: "RSA".to_owned(),
       ext: true,
 
       d: encode(&self.components().d.to_bytes_be()),
